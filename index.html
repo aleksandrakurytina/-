@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>NEON CASINO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a14; --panel:#141423; --neon:#00f0ff; --neon2:#ff00e5;
+  --gold:#ffd700; --text:#e8e8ff; --win:#00ff9d; --lose:#ff3860;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Orbitron',sans-serif;}
+body{background:radial-gradient(circle at top,#1a1a2e,#0a0a14 60%);color:var(--text);min-height:100vh;}
+header{display:flex;justify-content:space-between;align-items:center;padding:18px 30px;background:var(--panel);box-shadow:0 0 20px rgba(0,240,255,.3);position:sticky;top:0;z-index:10;}
+.logo{font-size:26px;font-weight:900;background:linear-gradient(90deg,var(--neon),var(--neon2));-webkit-background-clip:text;color:transparent;text-shadow:0 0 20px rgba(0,240,255,.5);}
+.balance-box{background:#0f0f1f;border:1px solid var(--gold);padding:8px 18px;border-radius:12px;font-weight:700;box-shadow:0 0 15px rgba(255,215,0,.3);}
+.balance-box span{color:var(--gold);}
+.reset-btn{background:transparent;border:1px solid var(--lose);color:var(--lose);padding:6px 14px;border-radius:10px;cursor:pointer;margin-left:10px;font-size:12px;}
+.reset-btn:hover{background:var(--lose);color:#fff;}
+
+#game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px;padding:30px;max-width:1200px;margin:0 auto;}
+.game-card{background:var(--panel);border-radius:16px;padding:20px;text-align:center;cursor:pointer;border:1px solid transparent;transition:.3s;position:relative;overflow:hidden;}
+.game-card:hover{border-color:var(--neon);box-shadow:0 0 25px rgba(0,240,255,.4);transform:translateY(-5px);}
+.game-card .icon{font-size:40px;margin-bottom:10px;}
+.game-card h3{font-size:14px;color:var(--text);}
+
+.hidden{display:none;}
+#game-area{max-width:700px;margin:0 auto;padding:30px;background:var(--panel);border-radius:20px;box-shadow:0 0 40px rgba(0,240,255,.2);}
+.back-btn{background:none;border:1px solid var(--neon);color:var(--neon);padding:8px 16px;border-radius:10px;cursor:pointer;margin-bottom:20px;}
+.back-btn:hover{background:var(--neon);color:#000;}
+
+input[type=number]{background:#0f0f1f;border:1px solid var(--neon);color:#fff;padding:10px;border-radius:10px;width:120px;font-family:'Orbitron';}
+.btn{background:linear-gradient(90deg,var(--neon),var(--neon2));border:none;color:#000;font-weight:700;padding:12px 24px;border-radius:12px;cursor:pointer;margin:5px;transition:.2s;}
+.btn:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(0,240,255,.6);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+.result-msg{margin-top:15px;font-weight:700;font-size:18px;min-height:30px;}
+.win-text{color:var(--win);text-shadow:0 0 10px var(--win);}
+.lose-text{color:var(--lose);text-shadow:0 0 10px var(--lose);}
+
+/* Slots */
+.reels{display:flex;gap:10px;justify-content:center;margin:20px 0;}
+.reel{width:80px;height:80px;background:#0f0f1f;border:2px solid var(--neon);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:40px;}
+
+/* Mines */
+.mines-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:350px;margin:20px auto;}
+.mine-cell{aspect-ratio:1;background:#0f0f1f;border:1px solid var(--neon);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;}
+.mine-cell.revealed-safe{background:var(--win);color:#000;}
+.mine-cell.revealed-bomb{background:var(--lose);color:#fff;}
+
+/* Roulette */
+.roulette-options{display:flex;gap:10px;justify-content:center;margin:15px 0;}
+.rb{padding:15px 25px;border-radius:10px;cursor:pointer;font-weight:700;}
+.rb.red{background:#d32f2f;} .rb.black{background:#212121;} .rb.green{background:#2e7d32;}
+.rb.selected{box-shadow:0 0 20px #fff;}
+
+/* Wheel */
+#wheel-wrap{width:250px;height:250px;margin:20px auto;position:relative;}
+#wheel{width:100%;height:100%;border-radius:50%;border:6px solid var(--gold);transition:transform 4s cubic-bezier(.17,.67,.21,1);}
+#pointer{position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:30px;}
+
+/* Crash */
+#crash-display{font-size:50px;font-weight:900;text-align:center;margin:30px 0;color:var(--neon);text-shadow:0 0 20px var(--neon);}
+
+/* Plinko */
+#plinko-board{display:flex;flex-direction:column;align-items:center;gap:6px;margin:20px 0;}
+.plinko-row{display:flex;gap:10px;}
+.peg{width:8px;height:8px;background:#444;border-radius:50%;}
+#plinko-buckets{display:flex;gap:4px;margin-top:10px;}
+.bucket{flex:1;text-align:center;padding:8px 0;background:#0f0f1f;border:1px solid var(--neon);border-radius:6px;font-size:12px;}
+
+/* Blackjack */
+.cards{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;}
+.card{width:50px;height:70px;background:#fff;color:#000;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;}
+
+/* RPS */
+.rps-options{display:flex;gap:15px;justify-content:center;margin:20px 0;}
+.rps-btn{font-size:40px;background:#0f0f1f;border:2px solid var(--neon);border-radius:50%;width:70px;height:70px;cursor:pointer;}
+.rps-btn:hover{background:var(--neon);}
+
+label{display:block;margin:10px 0 5px;font-size:13px;color:#aaa;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ NEON CASINO</div>
+  <div style="display:flex;align-items:center;">
+    <div class="balance-box">💰 <span id="balance">0</span> ₽</div>
+    <button class="reset-btn" onclick="resetBalance()">Сброс</button>
+  </div>
+</header>
+
+<div id="game-grid"></div>
+
+<div id="game-area" class="hidden">
+  <button class="back-btn" onclick="showGrid()">← Назад</button>
+  <div id="game-content"></div>
+</div>
+
+<script>
+/* ============ БАЛАНС (псевдо-бэкенд через localStorage) ============ */
+function initBalance(){
+  if(localStorage.getItem('visited') === null){
+    localStorage.setItem('balance', 5000);
+    localStorage.setItem('visited', 'true');
+  }
+  renderBalance();
+}
+function getBalance(){ return parseInt(localStorage.getItem('balance')) || 0; }
+function setBalance(v){ localStorage.setItem('balance', v); renderBalance(); }
+function renderBalance(){ document.getElementById('balance').textContent = getBalance(); }
+function changeBalance(delta){ setBalance(getBalance()+delta); }
+function resetBalance(){
+  if(confirm('Сбросить баланс до 5000₽?')){
+    setBalance(5000);
+  }
+}
+function canBet(amount){
+  if(amount<=0){ alert('Введите ставку больше 0'); return false; }
+  if(amount>getBalance()){ alert('Недостаточно средств!'); return false; }
+  return true;
+}
+
+/* ============ СПИСОК ИГР ============ */
+const games = [
+  {id:'slots', icon:'🎰', name:'Slots'},
+  {id:'dice', icon:'🎲', name:'Dice'},
+  {id:'coinflip', icon:'🪙', name:'Coin Flip'},
+  {id:'roulette', icon:'🎯', name:'Roulette'},
+  {id:'mines', icon:'💣', name:'Mines'},
+  {id:'crash', icon:'🚀', name:'Crash'},
+  {id:'blackjack', icon:'🃏', name:'Blackjack'},
+  {id:'wheel', icon:'🎡', name:'Wheel of Fortune'},
+  {id:'plinko', icon:'⚪', name:'Plinko'},
+  {id:'rps', icon:'✊', name:'RPS Battle'}
+];
+
+function renderGrid(){
+  const grid = document.getElementById('game-grid');
+  grid.innerHTML = games.map(g=>`
+    <div class="game-card" onclick="openGame('${g.id}')">
+      <div class="icon">${g.icon}</div>
+      <h3>${g.name}</h3>
+    </div>`).join('');
+}
+function showGrid(){
+  document.getElementById('game-grid').classList.remove('hidden');
+  document.getElementById('game-area').classList.add('hidden');
+}
+function openGame(id){
+  document.getElementById('game-grid').classList.add('hidden');
+  document.getElementById('game-area').classList.remove('hidden');
+  renderGame(id);
+}
+
+function renderGame(id){
+  const c = document.getElementById('game-content');
+  if(id==='slots') renderSlots(c);
+  if(id==='dice') renderDice(c);
+  if(id==='coinflip') renderCoinflip(c);
+  if(id==='roulette') renderRoulette(c);
+  if(id==='mines') renderMines(c);
+  if(id==='crash') renderCrash(c);
+  if(id==='blackjack') renderBlackjack(c);
+  if(id==='wheel') renderWheel(c);
+  if(id==='plinko') renderPlinko(c);
+  if(id==='rps') renderRPS(c);
+}
+
+/* ============ 1. SLOTS ============ */
+function renderSlots(c){
+  c.innerHTML = `
+    <h2>🎰 Slots</h2>
+    <div class="reels" id="reels">
+      <div class="reel">❔</div><div class="reel">❔</div><div class="reel">❔</div>
+    </div>
+    <label>Ставка (₽)</label>
+    <input type="number" id="slotBet" value="100" min="1">
+    <br><button class="btn" onclick="spinSlots()">SPIN</button>
+    <div class="result-msg" id="slotResult"></div>
+  `;
+}
+function spinSlots(){
+  const bet = parseInt(document.getElementById('slotBet').value);
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  const symbols = ['🍒','🍋','🔔','⭐','💎','7️⃣'];
+  const results = [0,0,0].map(()=>symbols[Math.floor(Math.random()*symbols.length)]);
+  document.querySelectorAll('#reels .reel').forEach((r,i)=>r.textContent=results[i]);
+  let win = 0, msg;
+  if(results[0]===results[1] && results[1]===results[2]){
+    const mult = {'🍒':3,'🍋':5,'🔔':8,'⭐':12,'💎':20,'7️⃣':50}[results[0]];
+    win = bet*mult;
+    msg = `<span class="win-text">ДЖЕКПОТ! +${win}₽ (x${mult})</span>`;
+  } else if(results[0]===results[1] || results[1]===results[2] || results[0]===results[2]){
+    win = bet*1.5;
+    msg = `<span class="win-text">Пара! +${win}₽</span>`;
+  } else {
+    msg = `<span class="lose-text">Проигрыш -${bet}₽</span>`;
+  }
+  changeBalance(win);
+  document.getElementById('slotResult').innerHTML = msg;
+}
+
+/* ============ 2. DICE ============ */
+function renderDice(c){
+  c.innerHTML = `
+    <h2>🎲 Dice (бросок меньше числа)</h2>
+    <label>Порог (2-98)</label>
+    <input type="number" id="diceTarget" value="50" min="2" max="98">
+    <label>Ставка (₽)</label>
+    <input type="number" id="diceBet" value="100" min="1">
+    <p style="margin-top:10px;font-size:13px;color:#aaa">Шанс выигрыша: <span id="diceChance">50</span>% | Множитель: x<span id="diceMult">1.98</span></p>
+    <br><button class="btn" onclick="rollDice()">ROLL</button>
+    <div class="result-msg" id="diceResult"></div>
+  `;
+  document.getElementById('diceTarget').addEventListener('input', updateDiceOdds);
+  updateDiceOdds();
+}
+function updateDiceOdds(){
+  const t = parseInt(document.getElementById('diceTarget').value)||50;
+  document.getElementById('diceChance').textContent = t;
+  document.getElementById('diceMult').textContent = (98/t).toFixed(2);
+}
+function rollDice(){
+  const bet = parseInt(document.getElementById('diceBet').value);
+  const target = parseInt(document.getElementById('diceTarget').value);
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  const roll = Math.floor(Math.random()*100)+1;
+  const mult = 98/target;
+  let msg;
+  if(roll < target){
+    const win = Math.round(bet*mult);
+    changeBalance(win);
+    msg = `<span class="win-text">Выпало ${roll} — ВЫИГРЫШ +${win}₽</span>`;
+  } else {
+    msg = `<span class="lose-text">Выпало ${roll} — проигрыш -${bet}₽</span>`;
+  }
+  document.getElementById('diceResult').innerHTML = msg;
+}
+
+/* ============ 3. COIN FLIP ============ */
+function renderCoinflip(c){
+  c.innerHTML = `
+    <h2>🪙 Coin Flip</h2>
+    <label>Ставка (₽)</label>
+    <input type="number" id="cfBet" value="100" min="1">
+    <br><button class="btn" onclick="flipCoin('heads')">Орёл</button>
+    <button class="btn" onclick="flipCoin('tails')">Решка</button>
+    <div class="result-msg" id="cfResult"></div>
+  `;
+}
+function flipCoin(choice){
+  const bet = parseInt(document.getElementById('cfBet').value);
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  const result = Math.random()<0.5?'heads':'tails';
+  let msg;
+  if(result===choice){
+    const win = bet*2;
+    changeBalance(win);
+    msg = `<span class="win-text">Выпало ${result==='heads'?'Орёл':'Решка'} — +${win}₽</span>`;
+  } else {
+    msg = `<span class="lose-text">Выпало ${result==='heads'?'Орёл':'Решка'} — -${bet}₽</span>`;
+  }
+  document.getElementById('cfResult').innerHTML = msg;
+}
+
+/* ============ 4. ROULETTE ============ */
+let rouletteChoice = null;
+function renderRoulette(c){
+  rouletteChoice = null;
+  c.innerHTML = `
+    <h2>🎯 Roulette</h2>
+    <div class="roulette-options">
+      <div class="rb red" onclick="selectRoulette('red',this)">Красное x2</div>
+      <div class="rb black" onclick="selectRoulette('black',this)">Чёрное x2</div>
+      <div class="rb green" onclick="selectRoulette('green',this)">Зелёное x14</div>
+    </div>
+    <label>Ставка (₽)</label>
+    <input type="number" id="rouBet" value="100" min="1">
+    <br><button class="btn" onclick="spinRoulette()">КРУТИТЬ</button>
+    <div class="result-msg" id="rouResult"></div>
+  `;
+}
+function selectRoulette(color, el){
+  rouletteChoice = color;
+  document.querySelectorAll('.rb').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function spinRoulette(){
+  const bet = parseInt(document.getElementById('rouBet').value);
+  if(!rouletteChoice){ alert('Выберите цвет!'); return; }
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  const num = Math.floor(Math.random()*37);
+  let color = num===0?'green':(num%2===0?'black':'red');
+  let msg;
+  if(color===rouletteChoice){
+    const mult = color==='green'?14:2;
+    const win = bet*mult;
+    changeBalance(win);
+    msg = `<span class="win-text">Выпало ${num} (${color}) — +${win}₽</span>`;
+  } else {
+    msg = `<span class="lose-text">Выпало ${num} (${color}) — -${bet}₽</span>`;
+  }
+  document.getElementById('rouResult').innerHTML = msg;
+}
+
+/* ============ 5. MINES ============ */
+let minesState = {};
+function renderMines(c){
+  c.innerHTML = `
+    <h2>💣 Mines</h2>
+    <label>Ставка (₽)</label>
+    <input type="number" id="minesBet" value="100" min="1">
+    <label>Кол-во мин (1-10)</label>
+    <input type="number" id="minesCount" value="3" min="1" max="10">
+    <br><button class="btn" onclick="startMines()">Начать игру</button>
+    <button class="btn" id="cashoutBtn" onclick="cashoutMines()" disabled>Забрать выигрыш</button>
+    <div class="mines-grid" id="minesGrid"></div>
+    <div class="result-msg" id="minesResult"></div>
+  `;
+}
+function startMines(){
+  const bet = parseInt(document.getElementById('minesBet').value);
+  const mineCount = parseInt(document.getElementById('minesCount').value);
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  minesState = {bet, mineCount, revealed:0, bombs:[], active:true};
+  const total = 25;
+  let positions = Array.from({length:total},(_,i)=>i);
+  for(let i=0;i<mineCount;i++){
+    const idx = Math.floor(Math.random()*positions.length);
+    minesState.bombs.push(positions[idx]);
+    positions.splice(idx,1);
+  }
+  const grid = document.getElementById('minesGrid');
+  grid.innerHTML = '';
+  for(let i=0;i<total;i++){
+    const cell = document.createElement('div');
+    cell.className='mine-cell';
+    cell.onclick = ()=>clickMine(i,cell);
+    grid.appendChild(cell);
+  }
+  document.getElementById('cashoutBtn').disabled = false;
+  document.getElementById('minesResult').innerHTML = 'Игра началась! Открывайте клетки.';
+}
+function clickMine(i, cell){
+  if(!minesState.active) return;
+  if(minesState.bombs.includes(i)){
+    cell.classList.add('revealed-bomb');
+    cell.textContent='💣';
+    minesState.active=false;
+    document.getElementById('cashoutBtn').disabled=true;
+    document.getElementById('minesResult').innerHTML = `<span class="lose-text">БУМ! Вы проиграли -${minesState.bet}₽</span>`;
+    revealAllMines();
+  } else {
+    cell.classList.add('revealed-safe');
+    cell.textContent='💎';
+    minesState.revealed++;
+    const mult = getMinesMultiplier();
+    document.getElementById('minesResult').innerHTML = `Открыто: ${minesState.revealed} | Текущий множитель: x${mult.toFixed(2)}`;
+  }
+}
+function getMinesMultiplier(){
+  const safe = 25 - minesState.mineCount;
+  let mult = 1;
+  for(let i=0;i<minesState.revealed;i++){
+    mult *= (25-i)/(safe-i);
+  }
+  return mult*0.97;
+}
+function cashoutMines(){
+  if(!minesState.active || minesState.revealed===0) return;
+  const mult = getMinesMultiplier();
+  const win = Math.round(minesState.bet*mult);
+  changeBalance(win);
+  minesState.active=false;
+  document.getElementById('cashoutBtn').disabled=true;
+  document.getElementById('minesResult').innerHTML = `<span class="win-text">Забрано +${win}₽ (x${mult.toFixed(2)})</span>`;
+  revealAllMines();
+}
+function revealAllMines(){
+  document.querySelectorAll('#minesGrid .mine-cell').forEach((cell,i)=>{
+    if(minesState.bombs.includes(i) && !cell.classList.contains('revealed-bomb')){
+      cell.textContent='💣'; cell.style.opacity=.5;
+    }
+  });
+}
+
+/* ============ 6. CRASH ============ */
+let crashState = {};
+function renderCrash(c){
+  c.innerHTML = `
+    <h2>🚀 Crash</h2>
+    <div id="crash-display">1.00x</div>
+    <label>Ставка (₽)</label>
+    <input type="number" id="crashBet" value="100" min="1">
+    <br><button class="btn" id="crashStartBtn" onclick="startCrash()">Старт</button>
+    <button class="btn" id="crashCashoutBtn" onclick="cashoutCrash()" disabled>Забрать</button>
+    <div class="result-msg" id="crashResult"></div>
+  `;
+}
+function startCrash(){
+  const bet = parseInt(document.getElementById('crashBet').value);
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  const crashPoint = Math.max(1.01, (0.99/(1-Math.random()))/5);
+  crashState = {bet, crashPoint, current:1.00, active:true};
+  document.getElementById('crashStartBtn').disabled=true;
+  document.getElementById('crashCashoutBtn').disabled=false;
+  document.getElementById('crashResult').innerHTML='';
+  const display = document.getElementById('crash-display');
+  const interval = setInterval(()=>{
+    if(!crashState.active){ clearInterval(interval); return; }
+    crashState.current += 0.02 + crashState.current*0.015;
+    if(crashState.current >= crashState.crashPoint){
+      display.textContent = crashState.crashPoint.toFixed(2)+'x';
+      display.style.color = 'var(--lose)';
+      crashState.active=false;
+      document.getElementById('crashCashoutBtn').disabled=true;
+      document.getElementById('crashStartBtn').disabled=false;
+      document.getElementById('crashResult').innerHTML = `<span class="lose-text">Crash на ${crashState.crashPoint.toFixed(2)}x — -${crashState.bet}₽</span>`;
+      clearInterval(interval);
+    } else {
+      display.textContent = crashState.current.toFixed(2)+'x';
+      display.style.color = 'var(--neon)';
+    }
+  }, 100);
+}
+function cashoutCrash(){
+  if(!crashState.active) return;
+  const win = Math.round(crashState.bet * crashState.current);
+  changeBalance(win);
+  crashState.active=false;
+  document.getElementById('crashCashoutBtn').disabled=true;
+  document.getElementById('crashStartBtn').disabled=false;
+  document.getElementById('crashResult').innerHTML = `<span class="win-text">Забрано на ${crashState.current.toFixed(2)}x — +${win}₽</span>`;
+}
+
+/* ============ 7. BLACKJACK ============ */
+let bjState = {};
+function cardValue(c){ if(['J','Q','K'].includes(c)) return 10; if(c==='A') return 11; return parseInt(c); }
+function drawCard(){ const cards=['2','3','4','5','6','7','8','9','10','J','Q','K','A']; return cards[Math.floor(Math.random()*cards.length)]; }
+function handValue(hand){
+  let val = hand.reduce((s,c)=>s+cardValue(c),0);
+  let aces = hand.filter(c=>c==='A').length;
+  while(val>21 && aces>0){ val-=10; aces--; }
+  return val;
+}
+function renderBlackjack(c){
+  c.innerHTML = `
+    <h2>🃏 Blackjack</h2>
+    <label>Ставка (₽)</label>
+    <input type="number" id="bjBet" value="100" min="1">
+    <br><button class="btn" onclick="startBlackjack()">Раздать</button>
+    <p>Дилер: <span id="dealerVal"></span></p>
+    <div class="cards" id="dealerCards"></div>
+    <p>Игрок: <span id="playerVal"></span></p>
+    <div class="cards" id="playerCards"></div>
+    <button class="btn" id="hitBtn" onclick="hitBJ()" disabled>Взять</button>
+    <button class="btn" id="standBtn" onclick="standBJ()" disabled>Хватит</button>
+    <div class="result-msg" id="bjResult"></div>
+  `;
+}
+function startBlackjack(){
+  const bet = parseInt(document.getElementById('bjBet').value);
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  bjState = {bet, player:[drawCard(),drawCard()], dealer:[drawCard(),drawCard()], active:true};
+  document.getElementById('hitBtn').disabled=false;
+  document.getElementById('standBtn').disabled=false;
+  document.getElementById('bjResult').innerHTML='';
+  renderBJHands(true);
+}
+function renderBJHands(hideDealer){
+  document.getElementById('playerCards').innerHTML = bjState.player.map(c=>`<div class="card">${c}</div>`).join('');
+  document.getElementById('playerVal').textContent = handValue(bjState.player);
+  if(hideDealer){
+    document.getElementById('dealerCards').innerHTML = `<div class="card">${bjState.dealer[0]}</div><div class="card">❔</div>`;
+    document.getElementById('dealerVal').textContent = '?';
+  } else {
+    document.getElementById('dealerCards').innerHTML = bjState.dealer.map(c=>`<div class="card">${c}</div>`).join('');
+    document.getElementById('dealerVal').textContent = handValue(bjState.dealer);
+  }
+}
+function hitBJ(){
+  if(!bjState.active) return;
+  bjState.player.push(drawCard());
+  renderBJHands(true);
+  if(handValue(bjState.player) > 21) endBlackjack('lose');
+}
+function standBJ(){
+  if(!bjState.active) return;
+  while(handValue(bjState.dealer) < 17) bjState.dealer.push(drawCard());
+  renderBJHands(false);
+  const p = handValue(bjState.player), d = handValue(bjState.dealer);
+  if(d>21 || p>d) endBlackjack('win');
+  else if(p===d) endBlackjack('push');
+  else endBlackjack('lose');
+}
+function endBlackjack(result){
+  bjState.active=false;
+  document.getElementById('hitBtn').disabled=true;
+  document.getElementById('standBtn').disabled=true;
+  renderBJHands(false);
+  if(result==='win'){
+    const win = bjState.bet*2;
+    changeBalance(win);
+    document.getElementById('bjResult').innerHTML = `<span class="win-text">Победа! +${win}₽</span>`;
+  } else if(result==='push'){
+    changeBalance(bjState.bet);
+    document.getElementById('bjResult').innerHTML = `Ничья, ставка возвращена`;
+  } else {
+    document.getElementById('bjResult').innerHTML = `<span class="lose-text">Поражение -${bjState.bet}₽</span>`;
+  }
+}
+
+/* ============ 8. WHEEL OF FORTUNE ============ */
+const wheelSegments = [0, 1.5, 2, 0, 3, 5, 0, 10, 1.5, 0, 2, 20];
+function renderWheel(c){
+  const colors = ['#d32f2f','#2e7d32','#1976d2','#d32f2f','#7b1fa2','#f57c00','#d32f2f','#ffd700','#2e7d32','#d32f2f','#1976d2','#ff00e5'];
+  const gradient = colors.map((col,i)=>`${col} ${i*30}deg ${(i+1)*30}deg`).join(',');
+  c.innerHTML = `
+    <h2>🎡 Wheel of Fortune</h2>
+    <div id="wheel-wrap">
+      <div id="pointer">🔻</div>
+      <div id="wheel" style="background:conic-gradient(${gradient})"></div>
+    </div>
+    <label>Ставка (₽)</label>
+    <input type="number" id="wheelBet" value="100" min="1">
+    <br><button class="btn" id="wheelBtn" onclick="spinWheel()">КРУТИТЬ</button>
+    <div class="result-msg" id="wheelResult"></div>
+  `;
+}
+function spinWheel(){
+  const bet = parseInt(document.getElementById('wheelBet').value);
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  document.getElementById('wheelBtn').disabled=true;
+  const segIndex = Math.floor(Math.random()*wheelSegments.length);
+  const mult = wheelSegments[segIndex];
+  const segAngle = 360/wheelSegments.length;
+  const targetAngle = 360*5 + (360 - (segIndex*segAngle + segAngle/2));
+  const wheel = document.getElementById('wheel');
+  wheel.style.transform = `rotate(${targetAngle}deg)`;
+  setTimeout(()=>{
+    const win = Math.round(bet*mult);
+    if(win>0){
+      changeBalance(win);
+      document.getElementById('wheelResult').innerHTML = `<span class="win-text">Выпал x${mult} — +${win}₽</span>`;
+    } else {
+      document.getElementById('wheelResult').innerHTML = `<span class="lose-text">Выпал x0 — -${bet}₽</span>`;
+    }
+    document.getElementById('wheelBtn').disabled=false;
+  }, 4100);
+}
+
+/* ============ 9. PLINKO ============ */
+const plinkoMultipliers = [10, 3, 1.5, 0.5, 0.3, 0.5, 1.5, 3, 10];
+function renderPlinko(c){
+  let rowsHtml = '';
+  for(let r=0;r<8;r++){
+    rowsHtml += `<div class="plinko-row">${'<div class="peg"></div>'.repeat(r+2)}</div>`;
+  }
+  c.innerHTML = `
+    <h2>⚪ Plinko</h2>
+    <div id="plinko-board">${rowsHtml}</div>
+    <div id="plinko-buckets">${plinkoMultipliers.map(m=>`<div class="bucket">x${m}</div>`).join('')}</div>
+    <label>Ставка (₽)</label>
+    <input type="number" id="plinkoBet" value="100" min="1">
+    <br><button class="btn" onclick="dropPlinko()">Бросить шар</button>
+    <div class="result-msg" id="plinkoResult"></div>
+  `;
+}
+function dropPlinko(){
+  const bet = parseInt(document.getElementById('plinkoBet').value);
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  // симуляция случайного блуждания -> индекс корзины (нормальное распределение через сумму случайных бросков)
+  let pos = 0;
+  for(let i=0;i<8;i++) pos += Math.random()<0.5?0:1;
+  const mult = plinkoMultipliers[pos];
+  const win = Math.round(bet*mult);
+  changeBalance(win);
+  const buckets = document.querySelectorAll('.bucket');
+  buckets.forEach(b=>b.style.boxShadow='none');
+  buckets[pos].style.boxShadow='0 0 20px var(--gold)';
+  if(mult>=1){
+    document.getElementById('plinkoResult').innerHTML = `<span class="win-text">Шар упал в x${mult} — +${win}₽</span>`;
+  } else {
+    document.getElementById('plinkoResult').innerHTML = `<span class="lose-text">Шар упал в x${mult} — итог ${win-bet}₽</span>`;
+  }
+}
+
+/* ============ 10. RPS BATTLE ============ */
+function renderRPS(c){
+  c.innerHTML = `
+    <h2>✊ Rock Paper Scissors</h2>
+    <label>Ставка (₽)</label>
+    <input type="number" id="rpsBet" value="100" min="1">
+    <div class="rps-options">
+      <div class="rps-btn" onclick="playRPS('rock')">✊</div>
+      <div class="rps-btn" onclick="playRPS('paper')">✋</div>
+      <div class="rps-btn" onclick="playRPS('scissors')">✌️</div>
+    </div>
+    <div class="result-msg" id="rpsResult"></div>
+  `;
+}
+function playRPS(choice){
+  const bet = parseInt(document.getElementById('rpsBet').value);
+  if(!canBet(bet)) return;
+  changeBalance(-bet);
+  const options = ['rock','paper','scissors'];
+  const icons = {rock:'✊',paper:'✋',scissors:'✌️'};
+  const comp = options[Math.floor(Math.random()*3)];
+  let msg;
+  if(choice===comp){
+    changeBalance(bet);
+    msg = `Ничья! ${icons[choice]} vs ${icons[comp]} — ставка возвращена`;
+  } else if(
+    (choice==='rock'&&comp==='scissors') ||
+    (choice==='paper'&&comp==='rock') ||
+    (choice==='scissors'&&comp==='paper')
+  ){
+    const win = bet*2;
+    changeBalance(win);
+    msg = `<span class="win-text">Победа! ${icons[choice]} vs ${icons[comp]} — +${win}₽</span>`;
+  } else {
+    msg = `<span class="lose-text">Поражение! ${icons[choice]} vs ${icons[comp]} — -${bet}₽</span>`;
+  }
+  document.getElementById('rpsResult').innerHTML = msg;
+}
+
+/* ============ INIT ============ */
+initBalance();
+renderGrid();
+</script>
+</body>
+</html>
